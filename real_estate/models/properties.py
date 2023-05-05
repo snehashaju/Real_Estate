@@ -6,6 +6,19 @@ from odoo.exceptions import UserError ,ValidationError
 class EstateProperty(models.Model):
     _name = 'estate.property'
 
+    # @api.constrains('selling_price')
+    # def _check_selling_price(self):
+    #     for record in self:
+    #         expected_price = record.property_id.expected_price
+    #         if record.selling_price < expected_price * 0.9:
+    #             raise ValidationError(_("Selling price cannot be lower than 90% of the expected price."))
+
+    @api.constrains('expected_price', 'selling_price')
+    def check_selling_price(self):
+        for record in self:
+            if record.selling_price > 0 and record.selling_price < 0.9 * record.expected_price:
+                raise ValidationError("Selling price cannot be lower than 90% of expected price!")
+
     def action_cancel(self):
         if self.status_text == 'sold':
             raise UserError('A sold property cannot be canceled.')
@@ -25,21 +38,6 @@ class EstateProperty(models.Model):
                 raise ValidationError(_(' The the unexpected Price must be strictly Positive'))
 
 
-    # def action_cancel(self):
-    #         if not self.status_text == 'canceled':
-    #             raise UserError('Canceled properties cannot be sold')
-    #         else:
-    #             self.status_text = 'sold'
-
-    # def action_cancel(self):
-    #     for record in self:
-    #         if not record.sold:
-    #             record.canceled = True
-    #status_text
-    # def action_sold(self):
-    #     for record in self:
-    #         if not record.canceled:
-    #             record.sold = True
     @api.model
     def _get_default_user(self):
         return self.env.context.get('user_id', self.env.user.id)
@@ -70,18 +68,6 @@ class EstateProperty(models.Model):
         else:
             self.garden_area = False
             self.orientation = False
-    #
-    # def set_employee_status(self, vals):
-    #     for rec in self:
-    #         for emp in rec.offer_ids:
-    #             if vals.get(emp.status) == 'accepted':
-    #                 vals[rec.status] = 'offer_accepted'
-    #             return vals
-    #
-    # def write(self, vals):
-    #     vals = self.set_employee_status(vals)
-    #     res = super(EstateProperty, self).write(vals)
-    #     return res
 
     name = fields.Char(string='Name')
     tag_ids = fields.Many2many('estate.property.tag', string='Tags')
@@ -125,7 +111,9 @@ class EstateProperty(models.Model):
                     self.write({
                             'selling_price': emp.price,
                             'buyer_id' : emp.partner_id.id,
+                            'status' : 'offer_accepted',
                         })
+
 
     def refused_button(self):
         for rec in self:
@@ -134,14 +122,10 @@ class EstateProperty(models.Model):
                 if emp.status == 'refused':
                     self.write({
                             'selling_price': 0 ,
-                            'buyer_id' :  [('buyer_id','=','')]
+                            'buyer_id' :  [('buyer_id','=','')],
+                            'status': 'new',
                         })
 
-    @api.constrains('selling_price')
-    def _check_selling_price(self):
-        for record in self:
-            if record.selling_price < 0.9 * record.expected_price:
-                raise ValidationError(_("Selling price cannot be lower than 90% of the expected price."))
 
 
 class EstatePropertyOffer(models.Model):
@@ -170,17 +154,3 @@ class EstatePropertyOffer(models.Model):
     @api.onchange('validity')
     def onchange_validity_days(self):
         self.deadline = fields.Date.today() + timedelta(days=self.validity)
-
-    # def refused_button(self):
-    #     for rec in self:
-    #         rec.status = 'refused'
-
-
-    # def accept_offer(self):
-    #     for offer in self:
-    #         property = offer.property_id
-    #         property.write({
-    #             'selling_price': offer.price
-    #         })
-
-

@@ -6,6 +6,7 @@ class PropertyType(models.Model):
 
     name = fields.Char(string='Name')
     property_ids = fields.One2many('estate.related','property_type_id', string='Properties')
+    sequence = fields.Integer('Sequence', default=1, help="Used to order stages. Lower is better.")
 
     _sql_constraints = [
         ('name', 'unique (name)', 'The Property Type must be unique !')
