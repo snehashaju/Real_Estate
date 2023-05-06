@@ -139,7 +139,7 @@
             <field name="name">estate_property.tree</field>
             <field name="model">estate.property</field>
             <field name="arch" type="xml">
-                <tree string="Properties">
+                <tree string="Properties" decoration-success="status=='offer_received'" decoration-bf="status=='offer_accepted'">
                     <field name="name"/>
                     <field name="property_type_id"/>
                     <field name="post_code"/>
