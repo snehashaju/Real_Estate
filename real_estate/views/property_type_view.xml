@@ -10,17 +10,13 @@
                 <form string="Property Type">
                     <sheet>
                         <div name="button_box" class="oe_button_box">
-                            <button name="property_button" type="object" class="oe_start_button"
-                                    icon="fa-calendar">
-                                <div classs="o_start_info">
-                                    <span class="o_start_text">Offers</span>
-
-                                </div>
+                            <button name="%(real_estate.action_estate_property_offer)d" type="action" icon="fa-money" class="oe_stat_button">
+                                <field string="Offer" name="offer_count" widget="statinfo"/>
                             </button>
                         </div>
-                       <h1>
-                            <field class="text-break" name="name" default_focus="1" placeholder="e.g. Lumber Inc"/>
-                        </h1>
+                        <field name="name" position="after">
+                            <field name="offer_ids"/>
+                        </field>
                         <notebook>
                             <page string="Properties">
                                 <group>

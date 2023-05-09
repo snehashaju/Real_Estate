@@ -6,13 +6,6 @@ from odoo.exceptions import UserError ,ValidationError
 class EstateProperty(models.Model):
     _name = 'estate.property'
 
-    # @api.constrains('selling_price')
-    # def _check_selling_price(self):
-    #     for record in self:
-    #         expected_price = record.property_id.expected_price
-    #         if record.selling_price < expected_price * 0.9:
-    #             raise ValidationError(_("Selling price cannot be lower than 90% of the expected price."))
-
     @api.constrains('expected_price', 'selling_price')
     def check_selling_price(self):
         for record in self:
@@ -30,6 +23,15 @@ class EstateProperty(models.Model):
             raise UserError('A canceled property cannot be set as sold.')
         else:
             self.status_text = 'sold'
+            self.write({
+                'status': 'sold',
+            })
+
+    def unlink(self):
+        for rec in self:
+            if rec.status_text not in ('new', 'canceled'):
+                raise UserError("You cannot delete a property with state other than 'New' or 'Canceled'.")
+        return super(EstateProperty, self).unlink()
 
     @api.constrains('expected_price')
     def constrains_price(self):
@@ -100,8 +102,6 @@ class EstateProperty(models.Model):
                                     ('sold','Sold'),
                                     ('canceled','Canceled')],
                                    string='Status', default='new')
-    # sold = fields.Boolean(string='Sold', default=False)
-    # canceled = fields.Boolean(string='Canceled', default=False)
 
     def accepted_button(self):
         for rec in self:
@@ -113,7 +113,6 @@ class EstateProperty(models.Model):
                             'buyer_id' : emp.partner_id.id,
                             'status' : 'offer_accepted',
                         })
-
 
     def refused_button(self):
         for rec in self:
@@ -139,7 +138,11 @@ class EstatePropertyOffer(models.Model):
     price = fields.Float(string='Price')
     partner_id = fields.Many2one('res.partner')
     deadline = fields.Date(string='Deadline' ,inverse='_set_validity_date' ,compute='_compute_validity_date')
-    # validity_date = fields.Date(string='Validity Date', compute='_compute_validity_date', inverse='_set_validity_date', store=True)
+    property_type_id = fields.Many2one(
+        related='property_id.property_type_id',
+        string='Property Type',
+        store=True
+    )
 
     def _compute_validity_date(self):
         for offer in self:
@@ -154,3 +157,17 @@ class EstatePropertyOffer(models.Model):
     @api.onchange('validity')
     def onchange_validity_days(self):
         self.deadline = fields.Date.today() + timedelta(days=self.validity)
+   
+
+    @api.model
+    def create(self, vals):
+        # set the property state to 'Offer Received' at offer creation
+        if 'property_id' in vals:
+            property = self.env['estate.property'].browse(vals['property_id'])
+            property.write({'status' : 'offer_received'})
+        # raise an error if the user tries to create an offer with a lower amount than an existing offer
+        existing_offer = self.search([('property_id', '=', vals['property_id']), ('price', '>=', vals['price'])])
+        if existing_offer:
+            raise exceptions.ValidationError('You cannot create an offer with a lower amount than an existing offer.')
+        return super(EstatePropertyOffer, self).create(vals)
+

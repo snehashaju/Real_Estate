@@ -9,6 +9,7 @@
         'views/properties_views.xml',
         'views/property_type_view.xml',
         'views/property_tag_view.xml',
+        'views/inherited_user_views.xml',
 
     ],
     'installable': True,

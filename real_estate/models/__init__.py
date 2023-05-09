@@ -1,1 +1,1 @@
-from . import properties, property_type, property_tag
+from . import properties, property_type, property_tag,inherited_model
